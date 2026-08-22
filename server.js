@@ -133,6 +133,74 @@ app.post('/api/demo', (req, res) => {
   }
 });
 
+// Portfolio import from a pasted/uploaded CSV holdings statement.
+//
+// Deliberately NOT a brokerage login: this only ever accepts a block of CSV
+// text (Symbol, Quantity, Avg Price columns, in any order/case, comma or
+// tab separated) that the user has already exported from their own broker.
+// No username/password is requested or accepted here, and nothing is sent
+// to any third-party site — this just parses and validates text the caller
+// already has.
+app.post('/api/portfolio/import', (req, res) => {
+  const { csv } = req.body || {};
+  if (typeof csv !== 'string' || !csv.trim()) {
+    return res.status(400).json({ error: 'csv (a non-empty string) is required' });
+  }
+
+  const lines = csv
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  if (!lines.length) {
+    return res.status(400).json({ error: 'No rows found in that CSV' });
+  }
+
+  const splitRow = (line) => line.split(/,|\t/).map((cell) => cell.trim());
+
+  // Try to detect a header row (e.g. "Symbol,Quantity,Avg Price") and map
+  // columns by name; otherwise assume the fixed order Symbol, Quantity, Price.
+  let rows = lines.map(splitRow);
+  let symbolIdx = 0, qtyIdx = 1, priceIdx = 2;
+
+  const headerCandidate = rows[0].map((c) => c.toLowerCase());
+  const looksLikeHeader = headerCandidate.some((c) =>
+    /symbol|ticker|scrip|instrument/.test(c) || /qty|quantity/.test(c) || /price|avg/.test(c)
+  );
+
+  if (looksLikeHeader) {
+    const findIdx = (patterns) => headerCandidate.findIndex((c) => patterns.some((p) => p.test(c)));
+    const s = findIdx([/symbol/, /ticker/, /scrip/, /instrument/]);
+    const q = findIdx([/qty/, /quantity/]);
+    const p = findIdx([/avg/, /price/]);
+    if (s >= 0) symbolIdx = s;
+    if (q >= 0) qtyIdx = q;
+    if (p >= 0) priceIdx = p;
+    rows = rows.slice(1);
+  }
+
+  const holdings = [];
+  const skipped = [];
+
+  for (const row of rows) {
+    const symbol = (row[symbolIdx] || '').toUpperCase().replace(/[^A-Z0-9&.\-]/g, '');
+    const quantity = Number(row[qtyIdx]);
+    const buyPrice = Number(row[priceIdx]);
+
+    if (!symbol || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(buyPrice) || buyPrice <= 0) {
+      skipped.push(row.join(','));
+      continue;
+    }
+    holdings.push({ symbol, quantity, buyPrice });
+  }
+
+  if (!holdings.length) {
+    return res.status(400).json({ error: 'Could not find any valid Symbol/Quantity/Price rows in that CSV' });
+  }
+
+  res.json({ holdings, skippedRows: skipped.length });
+});
+
 // Debug/demo endpoint: shells out to webcmd's own `site memory show`
 // command for the dividend-india site. This is real webcmd site memory —
 // not a custom cache — so what you see here is exactly what an agent

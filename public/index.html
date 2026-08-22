@@ -1,68 +1,181 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dividend Date Detective</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dividend Detective Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>🕵️ Dividend Date Detective</h1>
-  <p>
-    Enter a stock you hold to compare its potential capital gains against its
-    potential dividend income before the next ex-dividend date.
-  </p>
 
-  <form id="analyze-form">
-    <div class="field">
-      <label for="stock-symbol">Stock symbol</label>
-      <input
-        type="text"
-        id="stock-symbol"
-        name="stockSymbol"
-        placeholder="e.g. ITC"
-        autocomplete="off"
-        required
-      />
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="logo-mark">🕵</span>
+    <div class="logo-text">
+      <span class="logo-name">Dividend Detective <em>Pro</em></span>
+      <span class="logo-sub">Capital gains vs. dividend income, decided.</span>
     </div>
-    <div class="field">
-      <label for="buy-price">Buy price (₹)</label>
-      <input
-        type="number"
-        id="buy-price"
-        name="buyPrice"
-        placeholder="e.g. 350"
-        min="0"
-        step="0.01"
-        autocomplete="off"
-        required
-      />
-    </div>
-    <div class="field">
-      <label for="quantity">Quantity</label>
-      <input
-        type="number"
-        id="quantity"
-        name="quantity"
-        placeholder="e.g. 100"
-        min="1"
-        step="1"
-        autocomplete="off"
-        required
-      />
-    </div>
-    <button type="submit" id="analyze-btn">Analyze</button>
-  </form>
-
-  <button type="button" id="demo-btn">🎬 Demo Mode (sample data)</button>
-
-  <div id="status" class="status" hidden>
-    <span class="spinner" aria-hidden="true"></span>
-    <span id="status-text">Working...</span>
   </div>
 
-  <div id="results"></div>
+  <div class="topbar-center">
+    <span id="market-status" class="market-status">
+      <span class="dot"></span>
+      <span id="market-status-text">Checking market hours…</span>
+    </span>
+  </div>
 
-  <script src="script.js"></script>
+  <div class="topbar-right">
+    <button id="connect-btn" class="btn btn-ghost" type="button">Import Portfolio</button>
+    <button id="sync-btn" class="btn btn-primary" type="button">Sync Portfolio</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT SIDEBAR — My Portfolio -->
+  <aside class="sidebar sidebar-left">
+    <div class="sidebar-head">
+      <h2>My Portfolio</h2>
+      <button id="add-holding-btn" class="icon-btn" title="Add a holding" type="button">+</button>
+    </div>
+    <div id="portfolio-list" class="portfolio-list">
+      <!-- stock cards injected by script.js -->
+    </div>
+    <p class="sidebar-foot" id="portfolio-foot">Loading…</p>
+  </aside>
+
+  <!-- CENTER — Portfolio Analysis -->
+  <main class="main-area">
+
+    <section class="analysis-card">
+      <div class="analysis-head">
+        <h2>Portfolio Analysis</h2>
+        <span id="analysis-updated" class="updated-tag">—</span>
+      </div>
+
+      <div class="headline-grid">
+        <div class="headline">
+          <span class="headline-label">Total Potential Capital Gains</span>
+          <span id="total-capital-gains" class="headline-value gain-color">₹0.00</span>
+        </div>
+        <div class="headline">
+          <span class="headline-label">Total Upcoming Dividend Income</span>
+          <span id="total-dividend-income" class="headline-value dividend-color">₹0.00</span>
+        </div>
+      </div>
+
+      <div id="opportunities" class="opportunities">
+        <h3>Key Opportunities</h3>
+        <ul id="opportunities-list" class="opportunities-list">
+          <li class="opportunity-placeholder">Analyzing your holdings…</li>
+        </ul>
+      </div>
+
+      <div class="stock-breakdown">
+        <h3>Capital Gains vs. Dividend Income, by Stock</h3>
+        <ul id="breakdown-list" class="breakdown-list"></ul>
+      </div>
+    </section>
+
+    <section class="chart-card">
+      <div class="chart-head">
+        <h2 id="chart-title">Select a holding to see its chart</h2>
+        <div class="chart-meta">
+          <span id="chart-badge" class="chart-badge">Illustrative — not live data</span>
+          <button id="chart-key-btn" class="btn btn-ghost btn-tiny" type="button">Use my own data key</button>
+        </div>
+      </div>
+      <div id="price-chart" class="price-chart"></div>
+    </section>
+
+  </main>
+
+  <!-- RIGHT SIDEBAR — Market Watch -->
+  <aside class="sidebar sidebar-right">
+    <div class="sidebar-head">
+      <h2>Market Watch</h2>
+      <span class="badge-sim" title="These prices are simulated for visual demo purposes and are not live market data.">SIMULATED</span>
+    </div>
+    <div id="market-watch-list" class="market-watch-list">
+      <!-- ticker rows injected by script.js -->
+    </div>
+  </aside>
+
+</div>
+
+<!-- IMPORT PORTFOLIO MODAL -->
+<div id="import-modal" class="modal-overlay" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Import Portfolio</h3>
+      <button id="import-modal-close" class="icon-btn" type="button">✕</button>
+    </div>
+
+    <div class="modal-tabs">
+      <button class="modal-tab active" data-tab="manual" type="button">Add manually</button>
+      <button class="modal-tab" data-tab="csv" type="button">Paste / upload CSV</button>
+    </div>
+
+    <div class="modal-body">
+
+      <form id="manual-form" class="modal-panel" data-panel="manual">
+        <div class="field">
+          <label for="m-symbol">Stock symbol</label>
+          <input id="m-symbol" type="text" placeholder="e.g. ITC" autocomplete="off" required />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="m-qty">Quantity</label>
+            <input id="m-qty" type="number" min="1" step="1" placeholder="100" required />
+          </div>
+          <div class="field">
+            <label for="m-price">Avg. buy price (₹)</label>
+            <input id="m-price" type="number" min="0" step="0.01" placeholder="350.00" required />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Add holding</button>
+      </form>
+
+      <div class="modal-panel" data-panel="csv" hidden>
+        <p class="modal-hint">
+          Paste rows exported from your broker's holdings statement (Symbol, Quantity, Avg. Price —
+          any order, comma or tab separated), or choose a .csv file. Nothing here is sent anywhere
+          except this app's own server, and no login credentials are ever requested.
+        </p>
+        <textarea id="csv-text" class="csv-textarea" placeholder="Symbol,Quantity,Avg Price&#10;ITC,100,310.50&#10;RELIANCE,20,2450.00"></textarea>
+        <input id="csv-file" type="file" accept=".csv,text/csv,text/plain" />
+        <button id="csv-import-btn" type="button" class="btn btn-primary btn-block">Import from CSV</button>
+      </div>
+
+    </div>
+    <p id="import-error" class="import-error" hidden></p>
+  </div>
+</div>
+
+<!-- "Sync" info popover for the disabled live-brokerage-login idea -->
+<div id="sync-modal" class="modal-overlay" hidden>
+  <div class="modal modal-narrow">
+    <div class="modal-head">
+      <h3>Sync Portfolio</h3>
+      <button id="sync-modal-close" class="icon-btn" type="button">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint">
+        Re-running the live analysis for your current holdings — no login required, this app never
+        asks for your brokerage password. For a true one-click sync with Zerodha, the sanctioned
+        route is the official <strong>Kite Connect API</strong> (OAuth-style, no password sharing),
+        which needs a registered API key first.
+      </p>
+      <button id="sync-run-btn" class="btn btn-primary btn-block" type="button">Re-analyze now</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
