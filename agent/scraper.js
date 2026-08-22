@@ -459,7 +459,7 @@ async function getMarketPrice(stockSymbol) {
 // to confirm/adjust against the real DOM before relying on them.
 
 const TICKERTAPE_SEARCH_URL = (query) =>
-  `https://api.tickertape.in/search?text=${encodeURIComponent(query)}&types=stock&limit=5`;
+  `https://api.tickertape.in/search?text=${encodeURIComponent(query)}&types=stock`;
 
 const TICKERTAPE_DIVIDEND_ROW_SELECTORS = [
   '[data-testid*="dividend" i] table tbody tr',
@@ -479,16 +479,23 @@ async function resolveTickertapeUrl(page, stockSymbol) {
     if (debug) console.log('[scraper:secondary] search status:', response.status());
     if (response.ok()) {
       const rawText = await response.text();
+      if (debug) console.log('[scraper:secondary] raw response:', rawText.slice(0, 500));
       const data = JSON.parse(rawText || 'null');
-      const candidates = data?.data || data?.results || [];
+      const candidates = data?.data?.stocks || data?.data || data?.results || [];
       const match =
         candidates.find((item) => {
           const symbol = (item.ticker || item.symbol || '').toUpperCase();
           return symbol === stockSymbol.toUpperCase();
         }) || candidates[0];
 
-      const slug = match?.slug || match?.sid;
-      if (slug) return `https://www.tickertape.in/stocks/${slug}`;
+      const slug = match?.slug;
+      if (slug) {
+        // slug from the API already looks like "/stocks/itc-ITC" — don't
+        // prepend "/stocks/" again, just qualify it with the host.
+        return slug.startsWith('http')
+          ? slug
+          : `https://www.tickertape.in${slug.startsWith('/') ? '' : '/'}${slug}`;
+      }
     }
   } catch (err) {
     if (debug) console.log('[scraper:secondary] search failed:', err.message);

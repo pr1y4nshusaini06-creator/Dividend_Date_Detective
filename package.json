@@ -2,14 +2,18 @@
   "name": "dividend-date-detective",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
+    "setup:webcmd": "webcmd plugin install file://$PWD/webcmd-plugin/dividend-india",
+    "verify:webcmd": "webcmd browser verify dividend-india/moneycontrol-dividend && webcmd browser verify dividend-india/tickertape-dividend && webcmd browser verify dividend-india/market-price",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@agentrhq/webcmd": "^0.7.4",
     "@playwright/test": "^1.62.1",
     "axios": "^1.19.0",
     "express": "^5.2.1",

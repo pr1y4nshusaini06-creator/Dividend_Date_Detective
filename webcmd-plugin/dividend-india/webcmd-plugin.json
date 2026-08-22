@@ -1,0 +1,10 @@
+{
+  "name": "dividend-india",
+  "version": "0.1.0",
+  "description": "Ex-dividend date and amount lookups for Indian stocks, cross-referenced across Moneycontrol and Tickertape",
+  "webcmd": ">=0.5.3",
+  "author": {
+    "name": "Dividend Date Detective Team",
+    "handle": "SLAB-Hackathon-NITH"
+  }
+}

@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const { getDividendDataCrossReferenced, getMarketPrice } = require('./agent/scraper');
+const { getDividendDataCrossReferenced, getMarketPrice } = require('./agent/webcmdRunner');
 const { analyzeDividendData, generateAnalysis } = require('./agent/analyzer');
 const { DEMO_MARKET_DATA, DEMO_PORTFOLIO } = require('./agent/demoData');
 
@@ -131,6 +131,27 @@ app.post('/api/demo', (req, res) => {
     console.error('[/api/demo] Unexpected error:', err);
     res.status(500).json({ error: 'Could not load demo data. Please try again.' });
   }
+});
+
+// Debug/demo endpoint: shells out to webcmd's own `site memory show`
+// command for the dividend-india site. This is real webcmd site memory —
+// not a custom cache — so what you see here is exactly what an agent
+// driving `webcmd` would see too. Useful in the live demo: call this
+// before and after looking a stock up twice to show memory populate.
+app.get('/api/memory', (req, res) => {
+  const { execFile } = require('child_process');
+  const path = require('path');
+  const webcmdBin = path.join(__dirname, 'node_modules', '.bin', 'webcmd');
+  execFile(webcmdBin, ['site', 'memory', 'show', 'dividend-india', '-f', 'json'], { timeout: 10000 }, (err, stdout) => {
+    if (err) {
+      return res.json({ memory: [], note: 'webcmd site memory unavailable (no lookups run yet, or CLI not installed)' });
+    }
+    try {
+      res.json({ memory: JSON.parse(stdout) });
+    } catch (_) {
+      res.json({ memory: [], raw: stdout });
+    }
+  });
 });
 
 app.listen(PORT, () => {
